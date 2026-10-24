@@ -40,6 +40,7 @@ input[type=text],input[type=password]{background:#fff;color:#111;border:2px soli
 .cell .dn{font-size:14px;opacity:.7}.cell.today{outline:3px solid var(--gold)}.cell.sun{opacity:.55}
 .cw{display:flex;align-items:center;gap:3px;cursor:pointer;font-size:16px;line-height:1.1}.cw .face{width:22px;height:22px;border-width:1px}
 .dh{font:9px 'Press Start 2P',monospace;text-align:center}
+.fill.lead{background:repeating-linear-gradient(90deg,var(--gold) 0 12px,transparent 12px 15px)}
 .uid{font:14px 'Press Start 2P',monospace;background:#fff;color:#111;padding:6px;border:2px dashed #111;display:inline-block}
 #ov{position:fixed;inset:0;background:#000;color:#fff;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;overflow:hidden}
 #ov h2{font:16px/1.6 'Press Start 2P',monospace}
@@ -57,7 +58,7 @@ async function api(path,method='GET',body){
   const h={'Content-Type':'application/json'};const t=localStorage.getItem('tok');if(t)h.Authorization='Bearer '+t;
   const r=await fetch('/api'+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
   const d=await r.json().catch(()=>({}));
-  if(!r.ok){if(r.status===401&&S.me){logout();}throw new Error(typeof d.detail==='string'?d.detail:'Kuch gadbad ho gayi')}
+  if(!r.ok){if(r.status===401&&S.me){logout();}throw new Error(typeof d.detail==='string'?d.detail:Array.isArray(d.detail)?'Check karo: username 3+ letters (sirf a-z, 0-9, _), password 6+ characters, naam aur face photo zaroori hai':'Kuch gadbad ho gayi')}
   return d;
 }
 function logout(){localStorage.removeItem('tok');S.me=null;S.view='home';render()}
@@ -99,14 +100,14 @@ function vGroup(){
   const back=`<button data-a="go" data-v="home">◀ Back</button><br><br>`;
   if(g.my_status!=='in')return back+win('STATUS',g.my_status==='declined'?'❌ Request decline ho gayi.':'⏳ Request pending hai, owner accept karega.');
   const mem=g.members.filter(m=>m.status==='in').sort((a,b)=>b.pts-a.pts);
-  const top=Math.max(20,Math.ceil((Math.max(0,...mem.map(m=>m.pts))+1)/10)*10);let h=back;
+  const top=Math.max(20,Math.ceil((Math.max(0,...mem.map(m=>m.pts))+1)/10)*10);let h=back;const lead=Math.max(0,...mem.map(m=>m.pts));
   const pend=g.members.filter(m=>m.status==='pending');
   if(g.is_owner&&pend.length)h+=win('ENTRY_REQUESTS',pend.map(m=>`<div class="row"><div class="who">${face(m)} ${esc(m.name)} <span class="small">${esc(m.id)}</span></div><button class="ok" data-a="ans" data-id="${esc(m.id)}" data-s="in">Accept</button><button class="no" data-a="ans" data-id="${esc(m.id)}" data-s="declined">Decline</button></div>`).join(''));
   h+=win(`${esc(g.name)} — CODE: ${esc(g.code)}`,`<div class="small">Mahina: ${esc(g.month)} • Mahine ke end me jo upar, wo winner 🏆</div>
   <div class="row"><input type="text" id="revIn" maxlength="100" placeholder="Reason (optional), jaise: meeting me late aaya"></div>`+
   mem.map(m=>{const pc=Math.max(4,Math.min(96,m.pts/top*100));
-    return `<div style="margin:10px 0 18px"><div class="row"><div class="who" data-a="prof" data-id="${esc(m.id)}">${esc(m.name)} ${m.owner?'👑':''}</div><span class="pts">${m.pts} pt</span>${m.id!==g.me?`<button data-a="pt" data-id="${esc(m.id)}">+1 Panchayat</button>`:''}${g.is_owner&&!m.owner?`<button class="no" data-a="rm" data-id="${esc(m.id)}" data-n="${esc(m.name)}">✕</button>`:''}</div>
-    <div class="bar"><div class="fill" style="width:${pc}%"></div><div class="head" style="left:${pc}%">${face(m)}</div></div></div>`}).join(''));
+    return `<div style="margin:10px 0 18px"><div class="row"><div class="who" data-a="prof" data-id="${esc(m.id)}">${esc(m.name)} ${m.pts>0&&m.pts===lead?'<span class="gold">🏆</span>':''}${g.awards.some(a=>a.user.id===m.id)?` <span class="small">🏅x${g.awards.filter(a=>a.user.id===m.id).length}</span>`:''}${m.owner?' <span class="small">(owner)</span>':''}</div><span class="pts">${m.pts} pt</span>${m.id!==g.me?`<button data-a="pt" data-id="${esc(m.id)}">+1 Panchayat</button>`:''}${g.is_owner&&!m.owner?`<button class="no" data-a="rm" data-id="${esc(m.id)}" data-n="${esc(m.name)}">✕</button>`:''}</div>
+    <div class="bar"><div class="fill${m.pts>0&&m.pts===lead?' lead':''}" style="width:${pc}%"></div><div class="head" style="left:${pc}%">${face(m)}</div></div></div>`}).join(''));
   if(g.is_owner)h+=win('OWNER_SETTINGS 👑',`<div class="row"><input type="text" id="invIn" placeholder="User ID se add karo (PAN-12345)"><button data-a="inv">Add</button></div>
   <div class="row"><input type="text" id="renIn" maxlength="40" value="${esc(g.name)}"><button data-a="ren">Rename</button></div>
   <div class="small">Award titles (comma se alag, har mahine ek naya milega):</div>
