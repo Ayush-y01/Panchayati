@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: panchayat
+      POSTGRES_PASSWORD: panchayat
+      POSTGRES_DB: panchayat
+    volumes: [pgdata:/var/lib/postgresql/data]
+  app:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: postgresql://panchayat:panchayat@db:5432/panchayat
+      SECRET_KEY: change-this-to-a-long-random-string
+    depends_on: [db]
+volumes:
+  pgdata:

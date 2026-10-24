@@ -1,0 +1,10 @@
+# Optional: sirf frontend Netlify pe, /api Vercel backend ko proxy hoga.
+# YOUR-APP ko apne Vercel domain se badlo.
+[build]
+  publish = "public"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://YOUR-APP.vercel.app/api/:splat"
+  status = 200
+  force = true

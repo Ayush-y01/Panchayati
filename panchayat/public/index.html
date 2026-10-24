@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="hi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panchayat 🏛️</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#d8cfae;--grid:#cbc19b;--win:#c8c8c8;--ink:#111;--title:#000080;--tt:#fff;--hi:#fff;--lo:#6b6b6b;--bar:#1f3fbf;--gold:#e0a800}
+@media (prefers-color-scheme:dark){:root{--bg:#2a2a3c;--grid:#33334a;--win:#4a4a5c;--ink:#f2f2f2;--title:#7a2cbf;--hi:#7a7a90;--lo:#15151f;--bar:#f0b429;--gold:#ffd24d}}
+*{box-sizing:border-box}
+body{margin:0;background-color:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;color:var(--ink);font:22px/1.15 'VT323',ui-monospace,Menlo,Consolas,monospace;min-height:100vh}
+main{max-width:720px;margin:0 auto;padding:12px}
+.px,.tb,.pts{font-family:'Press Start 2P',monospace}
+.win{background:var(--win);border:2px solid;border-color:var(--hi) var(--lo) var(--lo) var(--hi);box-shadow:4px 4px 0 rgba(0,0,0,.35);margin:0 0 16px;animation:pop .25s steps(4)}
+@keyframes pop{from{transform:scale(.96);opacity:0}}
+.tb{background:var(--title);color:var(--tt);padding:6px 8px;font-size:11px;display:flex;justify-content:space-between;gap:8px}
+.bd{padding:12px;overflow-x:auto}
+button,input,select{font:inherit;color:var(--ink)}
+button{background:var(--win);border:2px solid;border-color:var(--hi) var(--lo) var(--lo) var(--hi);padding:4px 12px;cursor:pointer}
+button:active{border-color:var(--lo) var(--hi) var(--hi) var(--lo);transform:translate(1px,1px)}
+input[type=text],input[type=password]{background:#fff;color:#111;border:2px solid;border-color:var(--lo) var(--hi) var(--hi) var(--lo);padding:4px 8px;width:100%}
+.nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.nav .logo{font:12px 'Press Start 2P',monospace;flex:1;min-width:140px}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+.row>input{flex:1;min-width:120px}
+.face{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--ink);background:#fff;flex:none}
+.face.big{width:120px;height:120px}.face.sm{width:26px;height:26px}
+.bar{position:relative;height:22px;border:2px solid;border-color:var(--lo) var(--hi) var(--hi) var(--lo);background:#fff;margin:16px 6px 6px}
+.fill{height:100%;background:repeating-linear-gradient(90deg,var(--bar) 0 12px,transparent 12px 15px);transition:width .8s steps(10)}
+.head{position:absolute;top:-15px;transform:translateX(-50%);transition:left .8s steps(10)}
+.who{display:flex;align-items:center;gap:8px;cursor:pointer;flex:1}
+.pts{font-size:11px}
+.gold{color:var(--gold);text-shadow:1px 1px 0 #000}
+.msg{background:#fff7a8;color:#111;border:2px dashed #111;padding:6px 8px;margin-bottom:10px}
+.blink{animation:bl 1s steps(2) infinite}@keyframes bl{50%{opacity:0}}
+.award{display:flex;gap:8px;align-items:center;border-bottom:2px dotted var(--lo);padding:6px 0;flex-wrap:wrap}
+.small{font-size:18px;opacity:.85}
+.ok{background:#bfe8bf;color:#111}.no{background:#f0bcbc;color:#111}
+.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;min-width:430px}
+.cell{background:var(--bg);color:var(--ink);border:2px solid;border-color:var(--lo) var(--hi) var(--hi) var(--lo);min-height:66px;padding:2px;font-size:16px;overflow:hidden}
+.cell .dn{font-size:14px;opacity:.7}.cell.today{outline:3px solid var(--gold)}.cell.sun{opacity:.55}
+.cw{display:flex;align-items:center;gap:3px;cursor:pointer;font-size:16px;line-height:1.1}.cw .face{width:22px;height:22px;border-width:1px}
+.dh{font:9px 'Press Start 2P',monospace;text-align:center}
+.uid{font:14px 'Press Start 2P',monospace;background:#fff;color:#111;padding:6px;border:2px dashed #111;display:inline-block}
+#ov{position:fixed;inset:0;background:#000;color:#fff;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;overflow:hidden}
+#ov h2{font:16px/1.6 'Press Start 2P',monospace}
+.conf{position:absolute;top:-30px;font-size:26px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+</style></head><body><main id="app"></main><div id="ovbox"></div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=s=>document.querySelector(s);
+const S={me:null,view:'home',tab:'login',groups:[],g:null,code:null,awards:[],prof:null,face:null,msg:''};
+const face=(u,c='')=>`<img class="face ${c}" src="${esc(u.face)}" alt="">`;
+const win=(t,b)=>`<div class="win"><div class="tb"><span>${t}</span><span>_ □ X</span></div><div class="bd">${b}</div></div>`;
+
+async function api(path,method='GET',body){
+  const h={'Content-Type':'application/json'};const t=localStorage.getItem('tok');if(t)h.Authorization='Bearer '+t;
+  const r=await fetch('/api'+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){if(r.status===401&&S.me){logout();}throw new Error(typeof d.detail==='string'?d.detail:'Kuch gadbad ho gayi')}
+  return d;
+}
+function logout(){localStorage.removeItem('tok');S.me=null;S.view='home';render()}
+async function boot(){
+  if(localStorage.getItem('tok')){try{S.me=await api('/me');await loadHome()}catch(e){}}
+  render();
+}
+async function loadHome(){S.groups=await api('/groups')}
+function nav(){return `<div class="nav"><div class="logo">🏛️ PANCHAYAT.EXE</div><button data-a="go" data-v="home">Home</button><button data-a="hall">🏆 Hall</button><button data-a="prof" data-id="${esc(S.me.id)}">${face(S.me,'sm')} Me</button><button data-a="logout">Logout</button></div>`}
+
+function render(){
+  const keep=['#codeIn','#grpIn','#revIn','#invIn','#renIn','#titIn'].map(s=>[s,$(s)?.value,document.activeElement===$(s)]);
+  let h='';
+  if(!S.me){
+    h=win('LOGIN_REGISTER.EXE',`<div class="row"><button data-a="tab" data-t="login">Login</button><button data-a="tab" data-t="reg">Register</button></div>`+
+    (S.tab==='login'?`<div class="row"><input type="text" id="uIn" placeholder="Username"></div><div class="row"><input type="password" id="pIn" placeholder="Password"></div><div class="row"><button data-a="login">LOGIN ▶</button></div>`
+    :`<div class="row"><input type="text" id="uIn" maxlength="30" placeholder="Username (a-z, 0-9, _)"></div><div class="row"><input type="password" id="pIn" placeholder="Password (min 6)"></div><div class="row"><input type="text" id="nIn" maxlength="30" placeholder="Tera naam"></div>
+    <div class="row">${S.face?`<img class="face big" src="${S.face}">`:''}<button data-a="pick">📷 Sirf face ki photo</button></div><input type="file" id="file" accept="image/*" capture="user" hidden><div class="row"><button data-a="register">REGISTER ▶</button></div>`)
+    +(S.msg?`<div class="msg">${esc(S.msg)}</div>`:''));
+  }else{
+    h=nav()+(S.msg?`<div class="msg">${esc(S.msg)}</div>`:'')+({home:vHome,group:vGroup,hall:vHall,prof:vProf}[S.view]||vHome)();
+  }
+  $('#app').innerHTML=h;
+  keep.forEach(([s,v,f])=>{const e=$(s);if(e&&v){e.value=v;if(f)e.focus()}});
+}
+function vHome(){
+  return win('MERI_ID',`<span class="uid">${esc(S.me.id)}</span><div class="small">Ye teri unique ID hai. Owner isse tujhe group me add kar sakta hai.</div>`)+
+  win('MY_GROUPS',S.groups.length?S.groups.map(g=>`<div class="row"><div style="flex:1">📁 <b>${esc(g.name)}</b> <span class="small">${esc(g.code)} ${g.status==='pending'?'⏳ pending':g.status==='declined'?'❌ declined':''}${g.owner?' 👑':''}</span></div><button data-a="open" data-c="${esc(g.code)}">Open</button></div>`).join(''):'Abhi koi group nahi.')+
+  win('NEW_GROUP',`<div class="row"><input type="text" id="grpIn" maxlength="40" placeholder="Group ka naam"><button data-a="create">Create</button></div>`)+
+  win('JOIN_GROUP',`<div class="row"><input type="text" id="codeIn" maxlength="6" placeholder="6 letter code"><button data-a="join">Join</button></div><div class="small">Owner accept karega tab entry milegi.</div>`);
+}
+const awRow=a=>`<div class="award"><span class="gold">🏆</span><div class="who" data-a="prof" data-id="${esc(a.user.id)}">${face(a.user)} <b>${esc(a.user.name)}</b></div><div class="small"><b>${esc(a.title)}</b> • ${esc(a.group)} • ${esc(a.month)} • ${a.pts} pt</div></div>`;
+function vHall(){return win('HALL_OF_FAME 🏆 (public)',S.awards.length?S.awards.map(awRow).join(''):'Abhi kisi ne award nahi jeeta.')}
+function vProf(){const p=S.prof;if(!p)return win('PROFILE','Nahi mila.');
+  return win('PROFILE.EXE',`<div class="row">${face(p,'big')}<div><div class="px" style="font-size:14px">${esc(p.name)}</div><div class="uid" style="margin-top:8px">${esc(p.id)}</div><div class="gold px" style="font-size:12px;margin-top:10px">🏆 x ${p.awards.length}</div></div></div>`)+
+  win('AWARD_SECTION',p.awards.length?p.awards.map(awRow).join(''):'Abhi koi award nahi.')}
+function vGroup(){
+  const g=S.g;if(!g)return win('GROUP','Loading<span class="blink">_</span>');
+  const back=`<button data-a="go" data-v="home">◀ Back</button><br><br>`;
+  if(g.my_status!=='in')return back+win('STATUS',g.my_status==='declined'?'❌ Request decline ho gayi.':'⏳ Request pending hai, owner accept karega.');
+  const mem=g.members.filter(m=>m.status==='in').sort((a,b)=>b.pts-a.pts);
+  const top=Math.max(20,Math.ceil((Math.max(0,...mem.map(m=>m.pts))+1)/10)*10);let h=back;
+  const pend=g.members.filter(m=>m.status==='pending');
+  if(g.is_owner&&pend.length)h+=win('ENTRY_REQUESTS',pend.map(m=>`<div class="row"><div class="who">${face(m)} ${esc(m.name)} <span class="small">${esc(m.id)}</span></div><button class="ok" data-a="ans" data-id="${esc(m.id)}" data-s="in">Accept</button><button class="no" data-a="ans" data-id="${esc(m.id)}" data-s="declined">Decline</button></div>`).join(''));
+  h+=win(`${esc(g.name)} — CODE: ${esc(g.code)}`,`<div class="small">Mahina: ${esc(g.month)} • Mahine ke end me jo upar, wo winner 🏆</div>
+  <div class="row"><input type="text" id="revIn" maxlength="100" placeholder="Reason (optional), jaise: meeting me late aaya"></div>`+
+  mem.map(m=>{const pc=Math.max(4,Math.min(96,m.pts/top*100));
+    return `<div style="margin:10px 0 18px"><div class="row"><div class="who" data-a="prof" data-id="${esc(m.id)}">${esc(m.name)} ${m.owner?'👑':''}</div><span class="pts">${m.pts} pt</span>${m.id!==g.me?`<button data-a="pt" data-id="${esc(m.id)}">+1 Panchayat</button>`:''}${g.is_owner&&!m.owner?`<button class="no" data-a="rm" data-id="${esc(m.id)}" data-n="${esc(m.name)}">✕</button>`:''}</div>
+    <div class="bar"><div class="fill" style="width:${pc}%"></div><div class="head" style="left:${pc}%">${face(m)}</div></div></div>`}).join(''));
+  if(g.is_owner)h+=win('OWNER_SETTINGS 👑',`<div class="row"><input type="text" id="invIn" placeholder="User ID se add karo (PAN-12345)"><button data-a="inv">Add</button></div>
+  <div class="row"><input type="text" id="renIn" maxlength="40" value="${esc(g.name)}"><button data-a="ren">Rename</button></div>
+  <div class="small">Award titles (comma se alag, har mahine ek naya milega):</div>
+  <div class="row"><input type="text" id="titIn" value="${esc(g.titles)}"><button data-a="tit">Save</button></div>`);
+  h+=cal(g);
+  h+=win('RECENT_PANCHAYAT',g.feed.length?g.feed.map(f=>`<div class="small">👉 <b>${esc(f.from)}</b> ne <b>${esc(f.to)}</b> ko point diya${f.reason?': '+esc(f.reason):''}</div>`).join(''):'Abhi kuch nahi hua.');
+  h+=win('PICHLE_WINNERS',g.awards.length?g.awards.map(awRow).join(''):'Abhi koi winner nahi.');
+  return h;
+}
+function cal(g){
+  const cm=S.cal||g.today.slice(0,7),[Y,M]=cm.split('-').map(Number);
+  const off=(new Date(Date.UTC(Y,M-1,1)).getUTCDay()+6)%7,dim=new Date(Date.UTC(Y,M,0)).getUTCDate();
+  const by={};(g.days||[]).forEach(d=>(by[d.day]=by[d.day]||[]).push(d));
+  let c=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(x=>`<div class="dh">${x}</div>`).join('');
+  for(let i=0;i<off;i++)c+='<div></div>';
+  for(let d=1;d<=dim;d++){const key=`${cm}-${String(d).padStart(2,'0')}`,dow=(off+d-1)%7,w=by[key];
+    c+=`<div class="cell${key===g.today?' today':''}${dow===6?' sun':''}"><div class="dn">${d}</div>`+
+    (w?w.map(x=>`<div class="cw" data-a="prof" data-id="${esc(x.user.id)}" title="${x.pts} pt">${face(x.user)}<span>${esc(x.user.name.split(' ')[0])}</span></div>`).join(''):dow===6?'😴':'')+`</div>`}
+  return win('WINNER_CALENDAR 📅',`<div class="row"><button data-a="cal" data-d="-1">◀</button><b class="px" style="font-size:11px;flex:1;text-align:center">${cm}</b><button data-a="cal" data-d="1">▶</button></div><div class="calg">${c}</div><div class="small">Roz shaam 7 baje us din ka winner set ho jata hai (Sunday off).</div>`)
+}
+async function openGroup(c){S.cal=null;S.code=c;S.view='group';S.g=null;render();await refreshGroup();announce()}
+async function refreshGroup(){try{S.g=await api('/groups/'+S.code)}catch(e){S.msg=e.message;S.view='home'}render()}
+function showOv(head,title,ws,sub){
+  const box=$('#ovbox');box.innerHTML=`<div id="ov"><h2>${esc(head)}<br>AND THE WINNER IS<span class="blink">...</span></h2></div>`;
+  setTimeout(()=>{
+    $('#ov').innerHTML=`<h2 class="gold">🏆 ${esc(title)} 🏆</h2>${ws.map(w=>`${face(w.user,'big')}<h2>${esc(w.user.name)}</h2>`).join('')}<div class="small">${esc(sub)}</div><br><button id="okb">OK ▶</button>`;
+    for(let i=0;i<40;i++){const c=document.createElement('div');c.className='conf';c.textContent=['🎉','✨','🎊','🏆'][i%4];c.style.left=Math.random()*100+'%';c.style.animationDuration=(2+Math.random()*3)+'s';c.style.animationDelay=Math.random()*2+'s';$('#ov').appendChild(c)}
+    $('#okb').onclick=()=>box.innerHTML='';
+  },2200);
+}
+function announce(){
+  const g=S.g;if(!g||!g.awards||$('#ov'))return;
+  const dl=g.days||[];
+  if(dl.length){const last=dl[dl.length-1].day,age=(Date.parse(g.today)-Date.parse(last))/864e5,k='seenD'+g.code+last;
+    if(age<=1&&!localStorage.getItem(k)){localStorage.setItem(k,1);const ws=dl.filter(x=>x.day===last);showOv(last+' KA WINNER','DAILY WINNER',ws,ws[0].pts+' points • '+g.name);return}}
+  const a=g.awards.filter(x=>!localStorage.getItem('seen'+x.id));if(!a.length)return;
+  const m=a[0].month,ws=a.filter(x=>x.month===m);ws.forEach(x=>localStorage.setItem('seen'+x.id,1));
+  showOv(m+' KA PANCHAYAT RESULT',ws[0].title,ws.map(w=>({user:w.user})),ws[0].pts+' points • '+ws[0].group);
+}
+const val=s=>($(s)?.value||'').trim();
+document.addEventListener('change',e=>{if(e.target.id==='file'&&e.target.files[0]){const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const s=Math.min(i.width,i.height);c.getContext('2d').drawImage(i,(i.width-s)/2,(i.height-s)/2,s,s,0,0,128,128);S.face=c.toDataURL('image/jpeg',.7);const u=[val('#uIn'),val('#pIn'),val('#nIn')];render();$('#uIn').value=u[0];$('#pIn').value=u[1];$('#nIn').value=u[2]};i.src=URL.createObjectURL(e.target.files[0])}});
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const d=b.dataset;S.msg='';
+  try{
+    switch(d.a){
+      case'tab':S.tab=d.t;break;
+      case'pick':$('#file').click();return;
+      case'login':{const r=await api('/login','POST',{username:val('#uIn'),password:$('#pIn').value});localStorage.setItem('tok',r.token);S.me=r.me;await loadHome();break}
+      case'register':{if(!S.face){S.msg='Face photo daalo.';break}const r=await api('/register','POST',{username:val('#uIn'),password:$('#pIn').value,name:val('#nIn'),face:S.face});localStorage.setItem('tok',r.token);S.me=r.me;await loadHome();break}
+      case'logout':logout();return;
+      case'go':S.view=d.v;if(d.v==='home')await loadHome();break;
+      case'hall':S.awards=await api('/awards');S.view='hall';break;
+      case'prof':S.prof=await api('/users/'+d.id);S.view='prof';break;
+      case'open':openGroup(d.c);return;
+      case'create':{const r=await api('/groups','POST',{name:val('#grpIn')});await loadHome();openGroup(r.code);return}
+      case'join':{await api('/groups/join','POST',{code:val('#codeIn')});await loadHome();S.msg='Request bhej di. Owner accept karega.';break}
+      case'cal':{const g=S.g,[y,m]=(S.cal||g.today.slice(0,7)).split('-').map(Number),n=new Date(Date.UTC(y,m-1+Number(d.d),1));S.cal=n.getUTCFullYear()+'-'+String(n.getUTCMonth()+1).padStart(2,'0');break}
+      case'ans':await api(`/groups/${S.code}/answer`,'POST',{user:d.id,status:d.s});await refreshGroup();return;
+      case'pt':{const r=val('#revIn');await api(`/groups/${S.code}/points`,'POST',{to:d.id,reason:r});await refreshGroup();if($('#revIn'))$('#revIn').value='';return}
+      case'rm':if(confirm(d.n+' ko remove karna hai?')){await api(`/groups/${S.code}/members/${d.id}`,'DELETE');await refreshGroup()}return;
+      case'inv':{const r=await api(`/groups/${S.code}/invite`,'POST',{user:val('#invIn')});S.msg=r.name+' add ho gaya!';$('#invIn').value='';await refreshGroup();return}
+      case'ren':await api('/groups/'+S.code,'PATCH',{name:val('#renIn')});await refreshGroup();return;
+      case'tit':await api('/groups/'+S.code,'PATCH',{titles:val('#titIn')});S.msg='Titles save ho gaye.';await refreshGroup();return;
+    }
+  }catch(err){S.msg=err.message}
+  render();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!S.me&&e.target.tagName==='INPUT')$('[data-a=login],[data-a=register]')?.click()});
+setInterval(()=>{if(S.me&&S.view==='group'&&!document.activeElement?.matches('input'))refreshGroup().then(announce)},15000);
+boot();
+</script></body></html>
